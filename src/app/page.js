@@ -1078,12 +1078,13 @@ export default function SustainableActionTracker() {
                       labels: ['Transport', 'Vegetarian Meals', 'E-Waste', 'Energy', 'Plastic'],
                       datasets: [{
                         label: 'Carbon Saved (kg)',
-                        data: Object.values(calculateQuestionImpact(
-                          formData,
-                          distanceMiles,
-                          eWasteRecycleCount,
-                          vegetarianMeals
-                        )),
+                        data: [
+                          calculateQuestionImpact(formData, distanceMiles, eWasteRecycleCount, vegetarianMeals).transport,
+                          calculateQuestionImpact(formData, distanceMiles, eWasteRecycleCount, vegetarianMeals).vegetarian,
+                          calculateQuestionImpact(formData, distanceMiles, eWasteRecycleCount, vegetarianMeals).eWaste,
+                          calculateQuestionImpact(formData, distanceMiles, eWasteRecycleCount, vegetarianMeals).energy,
+                          calculateQuestionImpact(formData, distanceMiles, eWasteRecycleCount, vegetarianMeals).plastic
+                        ],
                         backgroundColor: 'rgba(76, 175, 80, 0.8)',
                         borderColor: 'rgba(76, 175, 80, 1)',
                         borderWidth: 1
@@ -1091,7 +1092,7 @@ export default function SustainableActionTracker() {
                     }}
                     options={{
                       responsive: true,
-                      maintainAspectRatio: true,
+                      maintainAspectRatio: false,
                       plugins: {
                         legend: {
                           display: false
