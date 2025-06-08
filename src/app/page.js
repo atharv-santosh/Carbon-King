@@ -72,14 +72,14 @@ const questions = [
 ];
 
 const levels = [
-  { level: 1, minSaved: 0, label: "Seedling", xpNeeded: 10 },
-  { level: 2, minSaved: 5, label: "Sprout", xpNeeded: 25 },
-  { level: 3, minSaved: 15, label: "Young Plant", xpNeeded: 50 },
-  { level: 4, minSaved: 30, label: "Mature Plant", xpNeeded: 100 },
-  { level: 5, minSaved: 50, label: "Forest Guardian", xpNeeded: 200 },
-  { level: 6, minSaved: 75, label: "Eco Warrior", xpNeeded: 300 },
-  { level: 7, minSaved: 100, label: "Earth Protector", xpNeeded: 500 },
-  { level: 8, minSaved: 150, label: "Climate Champion", xpNeeded: 1000 },
+  { level: 1, xpNeeded: 0, label: "Seedling" },
+  { level: 2, xpNeeded: 10, label: "Sprout" },
+  { level: 3, xpNeeded: 25, label: "Young Plant" },
+  { level: 4, xpNeeded: 50, label: "Mature Plant" },
+  { level: 5, xpNeeded: 100, label: "Forest Guardian" },
+  { level: 6, xpNeeded: 200, label: "Eco Warrior" },
+  { level: 7, xpNeeded: 300, label: "Earth Protector" },
+  { level: 8, xpNeeded: 500, label: "Climate Champion" },
 ];
 
 const initialQuests = [
@@ -191,9 +191,9 @@ function calculateQuestionImpact(formData, distanceMiles, eWasteRecycleCount, ve
     if (formData.transport === "Car") {
       impacts.transport = 0.404 * km;
     } else if (formData.transport === "Bus") {
-      impacts.transport = 0.101 * km;
+      impacts.transport = 0.101 * km * 0.5;
     } else if (formData.transport === "Train") {
-      impacts.transport = 0.041 * km;
+      impacts.transport = 0.041 * km * 0.3;
     }
   }
 
@@ -235,17 +235,21 @@ export default function SustainableActionTracker() {
   const [dailyLogs, setDailyLogs] = useState([]);
   const [lastCompletedDate, setLastCompletedDate] = useState(null);
 
-  // Load data from localStorage
+  // Load data from localStorage after component mounts
   useEffect(() => {
+    // Load XP
     const savedXp = localStorage.getItem("totalXp");
     if (savedXp) setTotalXp(Number(savedXp));
 
+    // Load Quests
     const savedQuests = localStorage.getItem("quests");
     if (savedQuests) setQuests(JSON.parse(savedQuests));
 
+    // Load Daily Logs
     const savedLogs = localStorage.getItem("dailyLogs");
     if (savedLogs) setDailyLogs(JSON.parse(savedLogs));
 
+    // Load Last Completed Date
     const savedLastDate = localStorage.getItem("lastCompletedDate");
     if (savedLastDate) setLastCompletedDate(savedLastDate);
 
@@ -263,17 +267,26 @@ export default function SustainableActionTracker() {
     if (savedVegetarianMeals) setVegetarianMeals(Number(savedVegetarianMeals));
     if (savedCarbonSaved) setCarbonSaved(Number(savedCarbonSaved));
     if (savedCurrentIndex) setCurrentIndex(Number(savedCurrentIndex));
-  }, []);
+  }, []); // Empty dependency array means this runs once on mount
 
-  // Save data to localStorage
+  // Save data to localStorage when it changes
   useEffect(() => {
     localStorage.setItem("totalXp", totalXp.toString());
+  }, [totalXp]);
+
+  useEffect(() => {
     localStorage.setItem("quests", JSON.stringify(quests));
+  }, [quests]);
+
+  useEffect(() => {
     localStorage.setItem("dailyLogs", JSON.stringify(dailyLogs));
+  }, [dailyLogs]);
+
+  useEffect(() => {
     if (lastCompletedDate) {
       localStorage.setItem("lastCompletedDate", lastCompletedDate);
     }
-  }, [totalXp, quests, dailyLogs, lastCompletedDate]);
+  }, [lastCompletedDate]);
 
   // Save formData, distance, counts, current index, carbonSaved to cookies on change
   useEffect(() => {
@@ -318,10 +331,12 @@ export default function SustainableActionTracker() {
         carbonSaved += 0.404 * km;
       } else if (transportAnswer === "Bus") {
         // Bus emits 101g CO2 per km per passenger
-        carbonSaved += 0.101 * km;
+        // Reduce the impact by 50% to balance XP
+        carbonSaved += 0.101 * km * 0.5;
       } else if (transportAnswer === "Train") {
         // Train emits 41g CO2 per km per passenger
-        carbonSaved += 0.041 * km;
+        // Reduce the impact by 70% to balance XP
+        carbonSaved += 0.041 * km * 0.3;
       }
       // Bike and Walk have 0 emissions
     }
@@ -425,7 +440,13 @@ export default function SustainableActionTracker() {
       const saved = getImpact();
       setCarbonSaved(saved);
       const xpGained = Math.floor(saved * 2);
-      setTotalXp(prev => prev + xpGained);
+      
+      // Update totalXp
+      setTotalXp(prevXp => {
+        const newXp = prevXp + xpGained;
+        localStorage.setItem("totalXp", newXp.toString());
+        return newXp;
+      });
       
       // Create new daily log
       const newLog = {
@@ -449,7 +470,6 @@ export default function SustainableActionTracker() {
       setXpAnimation({ show: true, amount: xpGained });
       setTimeout(() => setXpAnimation({ show: false, amount: 0 }), 2000);
       
-      // Update quests
       updateQuests();
     }
   }
@@ -488,31 +508,38 @@ export default function SustainableActionTracker() {
       return { 
         currentLevel: levels[0], 
         progress: 0, 
-        currentLevelXp: 0,
-        nextLevelXp: levels[0].xpNeeded 
+        xpForCurrentLevel: 0,
+        xpForNextLevel: levels[1].xpNeeded 
       };
     }
 
-    const currentLevel = levels.reduce((acc, lvl) =>
-      totalXp >= lvl.xpNeeded ? lvl : acc
-    );
-    const nextLevel = levels.find(lvl => lvl.xpNeeded > currentLevel.xpNeeded) || currentLevel;
-    
-    // Calculate XP for current level (ensure it's never negative)
-    const currentLevelXp = Math.max(0, totalXp - currentLevel.xpNeeded);
-    const nextLevelXp = nextLevel.xpNeeded - currentLevel.xpNeeded;
-    
-    // Calculate progress percentage (ensure it's between 0 and 100)
+    // Find current level
+    const currentLevel = levels.reduce((acc, level) => {
+      return totalXp >= level.xpNeeded ? level : acc;
+    }, levels[0]);
+
+    // Find next level
+    const nextLevel = levels.find(level => level.xpNeeded > currentLevel.xpNeeded) || currentLevel;
+
+    // Calculate progress
+    const xpForCurrentLevel = totalXp - currentLevel.xpNeeded;
+    const xpForNextLevel = nextLevel.xpNeeded - currentLevel.xpNeeded;
     const progress = nextLevel === currentLevel 
       ? 100 
-      : Math.min(100, Math.max(0, (currentLevelXp / nextLevelXp) * 100));
-    
-    return { currentLevel, progress, currentLevelXp, nextLevelXp };
+      : (xpForCurrentLevel / xpForNextLevel) * 100;
+
+    return {
+      currentLevel,
+      nextLevel,
+      progress,
+      xpForCurrentLevel,
+      xpForNextLevel
+    };
   }
 
   const currentQuestion = questions[currentIndex];
 
-  const { currentLevel, progress, currentLevelXp, nextLevelXp } = getLevelProgress();
+  const { currentLevel, nextLevel, progress, xpForCurrentLevel, xpForNextLevel } = getLevelProgress();
 
   // Add this CSS animation to your component's style section
   const xpAnimationStyle = {
@@ -592,34 +619,30 @@ export default function SustainableActionTracker() {
         ))}
         <div style={{ marginTop: 20, padding: 15, backgroundColor: "#d9f8d9", borderRadius: 10 }}>
           <h3 style={{ margin: "0 0 10px 0", color: "#064006" }}>Level Progress</h3>
-          {(() => {
-            const { currentLevel, progress } = getLevelProgress();
-            return (
-              <>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                  <span>Level {currentLevel.level}: {currentLevel.label}</span>
-                  <span>{Math.floor(progress)}%</span>
-                </div>
-                <div style={{
-                  height: 15,
-                  backgroundColor: "#a0d7a1",
-                  borderRadius: 8,
-                  overflow: "hidden"
-                }}>
-                  <div style={{
-                    width: `${progress}%`,
-                    height: "100%",
-                    backgroundColor: "#4caf50",
-                    borderRadius: 8,
-                    transition: "width 0.5s ease"
-                  }} />
-                </div>
-                <div style={{ marginTop: 5, fontSize: "0.9em", color: "#064006" }}>
-                  {currentLevelXp} / {nextLevelXp} XP
-                </div>
-              </>
-            );
-          })()}
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+            <span>Level {currentLevel.level}: {currentLevel.label}</span>
+            <span>{Math.floor(progress)}%</span>
+          </div>
+          <div style={{
+            height: 15,
+            backgroundColor: "#a0d7a1",
+            borderRadius: 8,
+            overflow: "hidden"
+          }}>
+            <div style={{
+              width: `${progress}%`,
+              height: "100%",
+              backgroundColor: "#4caf50",
+              borderRadius: 8,
+              transition: "width 0.5s ease"
+            }} />
+          </div>
+          <div style={{ marginTop: 5, fontSize: "0.9em", color: "#064006" }}>
+            {xpForCurrentLevel} / {xpForNextLevel} XP to next level
+          </div>
+          <div style={{ marginTop: 5, fontSize: "0.9em", color: "#064006" }}>
+            Total XP: {totalXp}
+          </div>
         </div>
         <button
           onClick={handleNextDay}
