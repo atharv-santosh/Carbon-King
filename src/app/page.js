@@ -293,88 +293,100 @@ export default function SustainableActionTracker() {
   const [fadeOpacity, setFadeOpacity] = useState(1);
   const [dailyLogs, setDailyLogs] = useState([]);
   const [lastCompletedDate, setLastCompletedDate] = useState(null);
+  const [isClient, setIsClient] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Load data from localStorage after component mounts
   useEffect(() => {
-    // Load XP
-    const savedXp = localStorage.getItem("totalXp");
-    if (savedXp) setTotalXp(Number(savedXp));
+    setIsClient(true);
+    
+    try {
+      // Load XP
+      const savedXp = localStorage.getItem("totalXp");
+      if (savedXp) setTotalXp(Number(savedXp));
 
-    // Load Quests
-    const savedQuests = localStorage.getItem("quests");
-    if (savedQuests) setQuests(JSON.parse(savedQuests));
+      // Load Quests
+      const savedQuests = localStorage.getItem("quests");
+      if (savedQuests) setQuests(JSON.parse(savedQuests));
 
-    // Load Daily Logs
-    const savedLogs = localStorage.getItem("dailyLogs");
-    if (savedLogs) setDailyLogs(JSON.parse(savedLogs));
+      // Load Daily Logs
+      const savedLogs = localStorage.getItem("dailyLogs");
+      if (savedLogs) setDailyLogs(JSON.parse(savedLogs));
 
-    // Load Last Completed Date
-    const savedLastDate = localStorage.getItem("lastCompletedDate");
-    if (savedLastDate) setLastCompletedDate(savedLastDate);
+      // Load Last Completed Date
+      const savedLastDate = localStorage.getItem("lastCompletedDate");
+      if (savedLastDate) setLastCompletedDate(savedLastDate);
 
-    // Load other saved data
-    const savedFormData = getCookie("formData");
-    const savedDistance = getCookie("distanceMiles");
-    const savedEWasteCount = getCookie("eWasteRecycleCount");
-    const savedVegetarianMeals = getCookie("vegetarianMeals");
-    const savedCarbonSaved = getCookie("carbonSaved");
-    const savedCurrentIndex = getCookie("currentIndex");
+      // Load form data from localStorage instead of cookies
+      const savedFormData = localStorage.getItem("formData");
+      const savedDistance = localStorage.getItem("distanceMiles");
+      const savedEWasteCount = localStorage.getItem("eWasteRecycleCount");
+      const savedVegetarianMeals = localStorage.getItem("vegetarianMeals");
+      const savedCarbonSaved = localStorage.getItem("carbonSaved");
+      const savedCurrentIndex = localStorage.getItem("currentIndex");
 
-    if (savedFormData) setFormData(JSON.parse(savedFormData));
-    if (savedDistance) setDistanceMiles(Number(savedDistance));
-    if (savedEWasteCount) setEWasteRecycleCount(Number(savedEWasteCount));
-    if (savedVegetarianMeals) setVegetarianMeals(Number(savedVegetarianMeals));
-    if (savedCarbonSaved) setCarbonSaved(Number(savedCarbonSaved));
-    if (savedCurrentIndex) setCurrentIndex(Number(savedCurrentIndex));
-  }, []); // Empty dependency array means this runs once on mount
+      if (savedFormData) setFormData(JSON.parse(savedFormData));
+      if (savedDistance) setDistanceMiles(Number(savedDistance));
+      if (savedEWasteCount) setEWasteRecycleCount(Number(savedEWasteCount));
+      if (savedVegetarianMeals) setVegetarianMeals(Number(savedVegetarianMeals));
+      if (savedCarbonSaved) setCarbonSaved(Number(savedCarbonSaved));
+      if (savedCurrentIndex) setCurrentIndex(Number(savedCurrentIndex));
+    } catch (error) {
+      console.error('Error loading saved data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   // Save data to localStorage when it changes
   useEffect(() => {
-    localStorage.setItem("totalXp", totalXp.toString());
-  }, [totalXp]);
+    if (!isLoading) {
+      localStorage.setItem("totalXp", totalXp.toString());
+    }
+  }, [totalXp, isLoading]);
 
   useEffect(() => {
-    localStorage.setItem("quests", JSON.stringify(quests));
-  }, [quests]);
+    if (!isLoading) {
+      localStorage.setItem("quests", JSON.stringify(quests));
+    }
+  }, [quests, isLoading]);
 
   useEffect(() => {
-    localStorage.setItem("dailyLogs", JSON.stringify(dailyLogs));
-  }, [dailyLogs]);
+    if (!isLoading) {
+      localStorage.setItem("dailyLogs", JSON.stringify(dailyLogs));
+    }
+  }, [dailyLogs, isLoading]);
 
   useEffect(() => {
     if (lastCompletedDate) {
-      const checkCooldown = setInterval(() => {
-        const now = new Date();
-        const lastDate = new Date(lastCompletedDate);
-        const diffInDays = (now - lastDate) / (1000 * 60 * 60 * 24); // Convert to days
-        
-        if (diffInDays >= 1) { // One day cooldown
-          // Reset the form and open questionnaire
-          setCurrentIndex(0);
-          setFormData({});
-          setDistanceMiles(0);
-          setEWasteRecycleCount(1);
-          setVegetarianMeals(1);
-          setCarbonSaved(null);
-          setLastCompletedDate(null);
-          localStorage.removeItem("lastCompletedDate");
-          clearInterval(checkCooldown);
-        }
-      }, 1000); // Check every second
-
-      return () => clearInterval(checkCooldown);
+      localStorage.setItem("lastCompletedDate", lastCompletedDate);
     }
   }, [lastCompletedDate]);
 
-  // Save formData, distance, counts, current index, carbonSaved to cookies on change
+  // Add new useEffects to save form data to localStorage
   useEffect(() => {
-    setCookie("formData", JSON.stringify(formData));
-    setCookie("distanceMiles", distanceMiles.toString());
-    setCookie("eWasteRecycleCount", eWasteRecycleCount.toString());
-    setCookie("vegetarianMeals", vegetarianMeals.toString());
-    setCookie("carbonSaved", carbonSaved !== null ? carbonSaved.toString() : "");
-    setCookie("currentIndex", currentIndex.toString());
-  }, [formData, distanceMiles, eWasteRecycleCount, vegetarianMeals, carbonSaved, currentIndex]);
+    if (!isLoading) {
+      localStorage.setItem("formData", JSON.stringify(formData));
+    }
+  }, [formData, isLoading]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      localStorage.setItem("distanceMiles", distanceMiles.toString());
+    }
+  }, [distanceMiles, isLoading]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      localStorage.setItem("eWasteRecycleCount", eWasteRecycleCount.toString());
+    }
+  }, [eWasteRecycleCount, isLoading]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      localStorage.setItem("vegetarianMeals", vegetarianMeals.toString());
+    }
+  }, [vegetarianMeals, isLoading]);
 
   // Animation states
   useEffect(() => {
@@ -383,6 +395,48 @@ export default function SustainableActionTracker() {
     setFadeKey((k) => k + 1);
     return () => clearTimeout(timeout);
   }, [currentIndex]);
+
+  // Add a new useEffect to save carbonSaved to localStorage
+  useEffect(() => {
+    if (!isLoading && carbonSaved !== null) {
+      localStorage.setItem("carbonSaved", carbonSaved.toString());
+    }
+  }, [carbonSaved, isLoading]);
+
+  // Add a new useEffect to handle the cooldown timer
+  useEffect(() => {
+    if (lastCompletedDate) {
+      const timer = setInterval(() => {
+        const now = new Date();
+        const lastDate = new Date(lastCompletedDate);
+        const diffInSeconds = (now - lastDate) / 1000;
+        
+        if (diffInSeconds >= 10) {
+          // Reset the state after cooldown
+          setLastCompletedDate(null);
+          localStorage.removeItem("lastCompletedDate");
+          setCurrentIndex(0);
+          setFormData({});
+          setDistanceMiles(0);
+          setEWasteRecycleCount(1);
+          setVegetarianMeals(1);
+          setCarbonSaved(null);
+          
+          // Clear localStorage
+          localStorage.removeItem("formData");
+          localStorage.removeItem("distanceMiles");
+          localStorage.removeItem("eWasteRecycleCount");
+          localStorage.removeItem("vegetarianMeals");
+          localStorage.removeItem("carbonSaved");
+          localStorage.removeItem("currentIndex");
+          
+          clearInterval(timer);
+        }
+      }, 1000); // Check every second
+
+      return () => clearInterval(timer);
+    }
+  }, [lastCompletedDate]);
 
   function handleOptionSelect(option) {
     setFormData({ ...formData, [currentQuestion.name]: option });
@@ -447,47 +501,51 @@ export default function SustainableActionTracker() {
   }
 
   function updateQuests() {
-    setQuests((oldQuests) => {
-      const updatedQuests = oldQuests.map((quest) => {
-        // Get the current progress increment
-        let progressIncrement = 0;
+    setQuests(prevQuests => {
+      // First update progress for all quests
+      const updatedQuests = prevQuests.map(quest => {
+        if (quest.completed) return quest;
+
+        let progress = quest.progress;
         
-        // Calculate progress based on quest type
+        // Update progress based on the action type
         if (quest.key === "bikeMiles" && formData.transport === "Bike") {
-          progressIncrement = distanceMiles;
-        } else if (quest.key === "walkMiles" && formData.transport === "Walk") {
-          progressIncrement = distanceMiles;
+          progress = Math.min(quest.target, progress + distanceMiles);
         } else if (quest.key === "recycledDevices" && formData.eWaste === "Yes, recycled or donated") {
-          progressIncrement = eWasteRecycleCount;
+          progress = Math.min(quest.target, progress + eWasteRecycleCount);
+        } else if (quest.key === "walkMiles" && formData.transport === "Walk") {
+          progress = Math.min(quest.target, progress + distanceMiles);
         } else if (quest.key === "energySaves" && formData.energy === "Yes") {
-          progressIncrement = 1;
+          progress = Math.min(quest.target, progress + 1);
         } else if (quest.key === "plasticAvoided" && formData.plastic === "Yes") {
-          progressIncrement = 1;
+          progress = Math.min(quest.target, progress + 1);
         }
-        
-        // Add to existing progress, but don't exceed target
-        const newProgress = Math.min(quest.target, quest.progress + progressIncrement);
 
-        return { ...quest, progress: newProgress };
+        const completed = progress >= quest.target;
+        if (completed) {
+          const xpGained = Math.floor(quest.target * 2);
+          setTotalXp(prevXp => {
+            const newXp = prevXp + xpGained;
+            localStorage.setItem("totalXp", newXp.toString());
+            return newXp;
+          });
+        }
+
+        return { ...quest, progress, completed };
       });
 
-      // Check for completed quests
-      const completedIndices = updatedQuests
-        .map((quest, idx) => quest.progress >= quest.target ? idx : -1)
-        .filter(idx => idx !== -1);
-
-      // Replace completed quests with new ones
-      if (completedIndices.length > 0) {
-        const existingIds = updatedQuests.map(q => q.id);
-        completedIndices.forEach(idx => {
+      // Remove completed quests and add new ones
+      const activeQuests = updatedQuests.filter(q => !q.completed);
+      const completedQuests = updatedQuests.filter(q => q.completed);
+      
+      // If we have completed quests, remove them and add new ones
+      if (completedQuests.length > 0) {
+        const existingIds = activeQuests.map(q => q.id);
         const newQuest = generateNewQuest(existingIds);
-        updatedQuests[idx] = newQuest;
-      });
+        return [...activeQuests, newQuest];
       }
 
-      // Save to localStorage
-      localStorage.setItem("quests", JSON.stringify(updatedQuests));
-      return updatedQuests;
+      return activeQuests;
     });
   }
 
@@ -495,8 +553,8 @@ export default function SustainableActionTracker() {
     if (!lastCompletedDate) return true;
     const now = new Date();
     const lastDate = new Date(lastCompletedDate);
-    const diffInDays = (now - lastDate) / (1000 * 60 * 60 * 24); // Convert to days
-    return diffInDays >= 1; // One day cooldown
+    const diffInSeconds = (now - lastDate) / 1000; // Changed to seconds
+    return diffInSeconds >= 10; // Changed to 10 seconds
   }
 
   function handleNext() {
@@ -519,7 +577,27 @@ export default function SustainableActionTracker() {
 
       const saved = getImpact();
       setCarbonSaved(saved);
-      const xpGained = Math.floor(saved * 2);
+      
+      // Calculate XP with more balanced multipliers
+      let xpGained = 0;
+      
+      // Calculate XP for each action type
+      if (formData.transport === "Bus" || formData.transport === "Train") {
+        // 2x multiplier for public transport
+        xpGained += Math.floor(saved * 2);
+      } else if (formData.eWaste === "Yes, recycled or donated") {
+        // 5x multiplier for recycling
+        xpGained += Math.floor(saved * 5);
+      } else if (formData.energy === "Yes") {
+        // 4x multiplier for energy saving
+        xpGained += Math.floor(saved * 4);
+      } else if (formData.plastic === "Yes") {
+        // 3x multiplier for plastic reduction
+        xpGained += Math.floor(saved * 3);
+      } else {
+        // Normal XP for other actions
+        xpGained += Math.floor(saved * 1.5);
+      }
       
       // Update totalXp
       setTotalXp(prevXp => {
@@ -562,7 +640,12 @@ export default function SustainableActionTracker() {
     if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
   }
 
-  function handleRestart() {
+  function handleResetCooldown() {
+    // Reset cooldown
+    setLastCompletedDate(null);
+    localStorage.removeItem("lastCompletedDate");
+    
+    // Reset form data and index
     setCurrentIndex(0);
     setFormData({});
     setDistanceMiles(0);
@@ -570,13 +653,13 @@ export default function SustainableActionTracker() {
     setVegetarianMeals(1);
     setCarbonSaved(null);
 
-    // Clear cookies on restart
-    setCookie("formData", "", -1);
-    setCookie("distanceMiles", "", -1);
-    setCookie("eWasteRecycleCount", "", -1);
-    setCookie("vegetarianMeals", "", -1);
-    setCookie("carbonSaved", "", -1);
-    setCookie("currentIndex", "", -1);
+    // Clear localStorage
+    localStorage.removeItem("formData");
+    localStorage.removeItem("distanceMiles");
+    localStorage.removeItem("eWasteRecycleCount");
+    localStorage.removeItem("vegetarianMeals");
+    localStorage.removeItem("carbonSaved");
+    localStorage.removeItem("currentIndex");
   }
 
   function handleNextDay() {
@@ -641,6 +724,29 @@ export default function SustainableActionTracker() {
     pointerEvents: 'none',
   };
 
+  // Modify the return statement to show loading state
+  if (isLoading) {
+    return (
+      <div style={{
+        minHeight: "100vh",
+        backgroundColor: "#e9fbe5",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        fontFamily: "Arial, sans-serif",
+      }}>
+        <div style={{
+          padding: "20px",
+          backgroundColor: "white",
+          borderRadius: "10px",
+          boxShadow: "0 0 15px rgba(0,0,0,0.1)",
+        }}>
+          Loading...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
@@ -683,7 +789,7 @@ export default function SustainableActionTracker() {
         }}
       >
         <h2 style={{ marginTop: 0, marginBottom: 12 }}>Quests</h2>
-        {quests.map((quest) => (
+        {isClient && quests.map((quest) => (
           <div
             key={quest.id}
             style={{
@@ -719,33 +825,42 @@ export default function SustainableActionTracker() {
             </small>
           </div>
         ))}
-        <div style={{ marginTop: 20, padding: 15, backgroundColor: "#d9f8d9", borderRadius: 10 }}>
-          <h3 style={{ margin: "0 0 10px 0", color: "#064006" }}>Level Progress</h3>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-            <span>Level {currentLevel.level}: {currentLevel.label}</span>
-            <span>{Math.floor(progress)}%</span>
+        {isClient && (
+          <div style={{ marginTop: 20, padding: 15, backgroundColor: "#d9f8d9", borderRadius: 10 }}>
+            <h3 style={{ margin: "0 0 10px 0", color: "#064006" }}>Level Progress</h3>
+            {(() => {
+              const { currentLevel, nextLevel, progress, xpForCurrentLevel, xpForNextLevel } = getLevelProgress();
+              return (
+                <>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                    <span>Level {currentLevel.level}: {currentLevel.label}</span>
+                    <span>{Math.floor(progress)}%</span>
+                  </div>
+                  <div style={{
+                    height: 15,
+                    backgroundColor: "#a0d7a1",
+                    borderRadius: 8,
+                    overflow: "hidden"
+                  }}>
+                    <div style={{
+                      width: `${progress}%`,
+                      height: "100%",
+                      backgroundColor: "#4caf50",
+                      borderRadius: 8,
+                      transition: "width 0.5s ease"
+                    }} />
+                  </div>
+                  <div style={{ marginTop: 5, fontSize: "0.9em", color: "#064006" }}>
+                    {xpForCurrentLevel} / {xpForNextLevel} XP to next level
+                  </div>
+                  <div style={{ marginTop: 5, fontSize: "0.9em", color: "#064006" }}>
+                    Total XP: {totalXp}
+                  </div>
+                </>
+              );
+            })()}
           </div>
-          <div style={{
-            height: 15,
-            backgroundColor: "#a0d7a1",
-            borderRadius: 8,
-            overflow: "hidden"
-          }}>
-            <div style={{
-              width: `${progress}%`,
-              height: "100%",
-              backgroundColor: "#4caf50",
-              borderRadius: 8,
-              transition: "width 0.5s ease"
-            }} />
-          </div>
-          <div style={{ marginTop: 5, fontSize: "0.9em", color: "#064006" }}>
-            {xpForCurrentLevel} / {xpForNextLevel} XP to next level
-          </div>
-          <div style={{ marginTop: 5, fontSize: "0.9em", color: "#064006" }}>
-            Total XP: {totalXp}
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Right side: Quiz & results */}
@@ -760,7 +875,7 @@ export default function SustainableActionTracker() {
           boxShadow: "0 0 15px rgba(0,0,0,0.1)",
         }}
       >
-        {carbonSaved === null && !lastCompletedDate ? (
+        {isClient && !lastCompletedDate ? (
           <div
             key={fadeKey}
             style={{
@@ -888,7 +1003,7 @@ export default function SustainableActionTracker() {
               </button>
             </div>
           </div>
-        ) : (
+        ) : isClient && (
           <div
             key="result"
             style={{
@@ -897,7 +1012,24 @@ export default function SustainableActionTracker() {
               color: "#000000"
             }}
           >
-            <h2 style={{ color: "#000000" }}>You saved {carbonSaved?.toFixed(2) || "0.00"} kg of CO₂ today!</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ color: "#000000", margin: 0 }}>You saved {carbonSaved?.toFixed(2) || "0.00"} kg of CO₂ today!</h2>
+              <button
+                onClick={handleResetCooldown}
+                style={{
+                  backgroundColor: "#4caf50",
+                  color: "white",
+                  padding: "8px 16px",
+                  border: "none",
+                  borderRadius: 8,
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  transition: "background-color 0.3s ease",
+                }}
+              >
+                Reset Cooldown
+              </button>
+            </div>
             <p style={{ fontSize: 18, marginTop: 10, color: "#000000" }}>
               Level: <strong>{currentLevel.label}</strong>
             </p>
@@ -1030,8 +1162,8 @@ export default function SustainableActionTracker() {
         )}
       </div>
 
-      {/* Add this to your component's return statement, just before the closing div */}
-      {xpAnimation.show && (
+      {/* XP Animation */}
+      {isClient && xpAnimation.show && (
         <div style={xpAnimationStyle}>
           +{xpAnimation.amount} XP
         </div>
