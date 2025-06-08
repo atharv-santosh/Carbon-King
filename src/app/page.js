@@ -411,7 +411,7 @@ export default function SustainableActionTracker() {
         const lastDate = new Date(lastCompletedDate);
         const diffInSeconds = (now - lastDate) / 1000;
         
-        if (diffInSeconds >= 10) {
+        if (diffInSeconds >= 86400) {
           // Reset the state after cooldown
           setLastCompletedDate(null);
           localStorage.removeItem("lastCompletedDate");
@@ -553,8 +553,8 @@ export default function SustainableActionTracker() {
     if (!lastCompletedDate) return true;
     const now = new Date();
     const lastDate = new Date(lastCompletedDate);
-    const diffInSeconds = (now - lastDate) / 1000; // Changed to seconds
-    return diffInSeconds >= 10; // Changed to 10 seconds
+    const diffInSeconds = (now - lastDate) / 1000;
+    return diffInSeconds >= 86400; // Changed to 24 hours (86400 seconds)
   }
 
   function handleNext() {
