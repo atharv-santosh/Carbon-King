@@ -284,7 +284,25 @@ export default function SustainableActionTracker() {
 
   useEffect(() => {
     if (lastCompletedDate) {
-      localStorage.setItem("lastCompletedDate", lastCompletedDate);
+      const checkCooldown = setInterval(() => {
+        const now = new Date();
+        const lastDate = new Date(lastCompletedDate);
+        const diffInSeconds = (now - lastDate) / 1000;
+        
+        if (diffInSeconds >= 10) {
+          // Reset the form and open questionnaire
+          setCurrentIndex(0);
+          setFormData({});
+          setDistanceMiles(0);
+          setEWasteRecycleCount(1);
+          setVegetarianMeals(1);
+          setCarbonSaved(null);
+          setLastCompletedDate(null);
+          clearInterval(checkCooldown);
+        }
+      }, 1000); // Check every second
+
+      return () => clearInterval(checkCooldown);
     }
   }, [lastCompletedDate]);
 
@@ -415,8 +433,10 @@ export default function SustainableActionTracker() {
 
   function canSubmitToday() {
     if (!lastCompletedDate) return true;
-    const today = new Date().toDateString();
-    return lastCompletedDate !== today;
+    const now = new Date();
+    const lastDate = new Date(lastCompletedDate);
+    const diffInSeconds = (now - lastDate) / 1000;
+    return diffInSeconds >= 10; // 10 second cooldown
   }
 
   function handleNext() {
@@ -464,7 +484,11 @@ export default function SustainableActionTracker() {
       };
       
       setDailyLogs(prev => [...prev, newLog]);
-      setLastCompletedDate(new Date().toDateString());
+      
+      // Start the cooldown after submission
+      const now = new Date();
+      setLastCompletedDate(now.toISOString());
+      localStorage.setItem("lastCompletedDate", now.toISOString());
       
       // Trigger the animation
       setXpAnimation({ show: true, amount: xpGained });
@@ -496,10 +520,9 @@ export default function SustainableActionTracker() {
   }
 
   function handleNextDay() {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    setLastCompletedDate(tomorrow.toDateString());
-    localStorage.setItem("lastCompletedDate", tomorrow.toDateString());
+    const now = new Date();
+    setLastCompletedDate(now.toISOString());
+    localStorage.setItem("lastCompletedDate", now.toISOString());
   }
 
   function getLevelProgress() {
@@ -644,23 +667,6 @@ export default function SustainableActionTracker() {
             Total XP: {totalXp}
           </div>
         </div>
-        <button
-          onClick={handleNextDay}
-          style={{
-            backgroundColor: "#4caf50",
-            color: "white",
-            padding: "10px 20px",
-            border: "none",
-            borderRadius: 8,
-            fontWeight: "bold",
-            cursor: "pointer",
-            transition: "background-color 0.3s ease",
-            width: "100%",
-            marginTop: "10px"
-          }}
-        >
-          Next Day
-        </button>
       </div>
 
       {/* Right side: Quiz & results */}
@@ -914,39 +920,6 @@ export default function SustainableActionTracker() {
                 </div>
               </div>
             )}
-
-            <div style={{ marginTop: 30, display: 'flex', gap: '10px' }}>
-              <button
-                onClick={handleRestart}
-                style={{
-                  backgroundColor: "#4caf50",
-                  color: "white",
-                  padding: "10px 20px",
-                  border: "none",
-                  borderRadius: 8,
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                  transition: "background-color 0.3s ease",
-                }}
-              >
-                Restart
-              </button>
-              <button
-                onClick={handleNextDay}
-                style={{
-                  backgroundColor: "#4caf50",
-                  color: "white",
-                  padding: "10px 20px",
-                  border: "none",
-                  borderRadius: 8,
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                  transition: "background-color 0.3s ease",
-                }}
-              >
-                Next Day
-              </button>
-            </div>
           </div>
         )}
       </div>
