@@ -221,6 +221,64 @@ function calculateQuestionImpact(formData, distanceMiles, eWasteRecycleCount, ve
   return impacts;
 }
 
+// Add this function to analyze the user's actions
+function analyzeCarbonUsage(formData, carbonSaved) {
+  const analysis = [];
+  const suggestions = [];
+
+  // Analyze transport
+  if (formData.transport === "Car") {
+    analysis.push("Consider using public transport or carpooling to reduce your carbon footprint.");
+    suggestions.push("Try taking the bus or train next time!");
+  } else if (formData.transport === "Bus" || formData.transport === "Train") {
+    analysis.push("Great job using public transport!");
+  } else if (formData.transport === "Bike" || formData.transport === "Walk") {
+    analysis.push("Excellent choice! Walking or biking is the most eco-friendly option.");
+  }
+
+  // Analyze vegetarian meals
+  if (formData.vegetarian === "Yes") {
+    analysis.push("Eating vegetarian meals helps reduce your carbon footprint significantly!");
+  } else {
+    suggestions.push("Consider trying more vegetarian meals to reduce your carbon footprint.");
+  }
+
+  // Analyze e-waste
+  if (formData.eWaste === "Yes, recycled or donated") {
+    analysis.push("Great job recycling electronics! This helps prevent harmful e-waste.");
+  } else {
+    suggestions.push("Remember to recycle old electronics when possible.");
+  }
+
+  // Analyze energy usage
+  if (formData.energy === "Yes") {
+    analysis.push("Using energy-saving appliances is a great sustainable choice!");
+  } else {
+    suggestions.push("Try using energy-saving appliances to reduce your energy consumption.");
+  }
+
+  // Analyze plastic usage
+  if (formData.plastic === "Yes") {
+    analysis.push("Avoiding single-use plastic is excellent for the environment!");
+  } else {
+    suggestions.push("Try to reduce your use of single-use plastics.");
+  }
+
+  // Overall analysis
+  if (carbonSaved > 5) {
+    analysis.push("You're making a significant positive impact on the environment!");
+  } else if (carbonSaved > 2) {
+    analysis.push("Good effort! Keep up the sustainable practices.");
+  } else {
+    analysis.push("Every small action counts! Keep working on reducing your carbon footprint.");
+  }
+
+  return {
+    analysis: analysis,
+    suggestions: suggestions
+  };
+}
+
 export default function SustainableActionTracker() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [formData, setFormData] = useState({});
@@ -288,9 +346,9 @@ export default function SustainableActionTracker() {
       const checkCooldown = setInterval(() => {
         const now = new Date();
         const lastDate = new Date(lastCompletedDate);
-        const diffInSeconds = (now - lastDate) / 1000;
+        const diffInDays = (now - lastDate) / (1000 * 60 * 60 * 24); // Convert to days
         
-        if (diffInSeconds >= 10) {
+        if (diffInDays >= 1) { // One day cooldown
           // Reset the form and open questionnaire
           setCurrentIndex(0);
           setFormData({});
@@ -299,6 +357,7 @@ export default function SustainableActionTracker() {
           setVegetarianMeals(1);
           setCarbonSaved(null);
           setLastCompletedDate(null);
+          localStorage.removeItem("lastCompletedDate");
           clearInterval(checkCooldown);
         }
       }, 1000); // Check every second
@@ -408,7 +467,7 @@ export default function SustainableActionTracker() {
         
         // Add to existing progress, but don't exceed target
         const newProgress = Math.min(quest.target, quest.progress + progressIncrement);
-        
+
         return { ...quest, progress: newProgress };
       });
 
@@ -421,9 +480,9 @@ export default function SustainableActionTracker() {
       if (completedIndices.length > 0) {
         const existingIds = updatedQuests.map(q => q.id);
         completedIndices.forEach(idx => {
-          const newQuest = generateNewQuest(existingIds);
-          updatedQuests[idx] = newQuest;
-        });
+        const newQuest = generateNewQuest(existingIds);
+        updatedQuests[idx] = newQuest;
+      });
       }
 
       // Save to localStorage
@@ -436,8 +495,8 @@ export default function SustainableActionTracker() {
     if (!lastCompletedDate) return true;
     const now = new Date();
     const lastDate = new Date(lastCompletedDate);
-    const diffInSeconds = (now - lastDate) / 1000;
-    return diffInSeconds >= 10; // 10 second cooldown
+    const diffInDays = (now - lastDate) / (1000 * 60 * 60 * 24); // Convert to days
+    return diffInDays >= 1; // One day cooldown
   }
 
   function handleNext() {
@@ -494,7 +553,7 @@ export default function SustainableActionTracker() {
       // Trigger the animation
       setXpAnimation({ show: true, amount: xpGained });
       setTimeout(() => setXpAnimation({ show: false, amount: 0 }), 2000);
-      
+
       updateQuests();
     }
   }
@@ -701,7 +760,7 @@ export default function SustainableActionTracker() {
           boxShadow: "0 0 15px rgba(0,0,0,0.1)",
         }}
       >
-        {carbonSaved === null ? (
+        {carbonSaved === null && !lastCompletedDate ? (
           <div
             key={fadeKey}
             style={{
@@ -838,12 +897,12 @@ export default function SustainableActionTracker() {
               color: "#000000"
             }}
           >
-            <h2 style={{ color: "#000000" }}>You saved {carbonSaved.toFixed(2)} kg of CO₂ today!</h2>
+            <h2 style={{ color: "#000000" }}>You saved {carbonSaved?.toFixed(2) || "0.00"} kg of CO₂ today!</h2>
             <p style={{ fontSize: 18, marginTop: 10, color: "#000000" }}>
               Level: <strong>{currentLevel.label}</strong>
             </p>
             <p style={{ fontSize: 16, marginTop: 10, color: "#000000" }}>
-              It would take approximately{" "}
+               It would take approximately{" "}
               <strong>{Math.ceil(carbonSaved / 0.057)}</strong> tree
               {carbonSaved / 0.057 > 1 ? "s" : ""} absorbing CO₂ for one day to
               match this!
@@ -856,7 +915,7 @@ export default function SustainableActionTracker() {
                 {dailyLogs.slice().reverse().map((log, index) => (
                   <div 
                     key={index}
-                    style={{
+              style={{
                       padding: "10px",
                       margin: "5px 0",
                       backgroundColor: "#f5f5f5",
@@ -875,7 +934,7 @@ export default function SustainableActionTracker() {
 
             {carbonSaved !== null && (
               <div style={{ 
-                marginTop: 30, 
+                marginTop: 30,
                 maxWidth: '600px', 
                 margin: '30px auto',
                 height: '300px'
@@ -938,6 +997,33 @@ export default function SustainableActionTracker() {
                   <p>Total Carbon Saved: {carbonSaved.toFixed(2)} kg</p>
                   <p>Date: {new Date().toDateString()}</p>
                 </div>
+              </div>
+            )}
+
+            {carbonSaved !== null && (
+              <div style={{ marginTop: 20, padding: 15, backgroundColor: "#f5f5f5", borderRadius: 10 }}>
+                <h3 style={{ color: "#064006", marginBottom: 10 }}>Analysis</h3>
+                {(() => {
+                  const { analysis, suggestions } = analyzeCarbonUsage(formData, carbonSaved);
+                  return (
+                    <>
+                      <div style={{ marginBottom: 15 }}>
+                        <h4 style={{ color: "#064006", marginBottom: 5 }}>What You Did Well:</h4>
+                        {analysis.map((item, index) => (
+                          <p key={index} style={{ color: "#064006", margin: "5px 0" }}>✓ {item}</p>
+                        ))}
+                      </div>
+                      {suggestions.length > 0 && (
+                        <div>
+                          <h4 style={{ color: "#064006", marginBottom: 5 }}>Suggestions for Improvement:</h4>
+                          {suggestions.map((item, index) => (
+                            <p key={index} style={{ color: "#064006", margin: "5px 0" }}>💡 {item}</p>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             )}
           </div>
