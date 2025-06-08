@@ -10,6 +10,7 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
+import Image from 'next/image';
 
 // Register ChartJS components
 ChartJS.register(
@@ -588,8 +589,27 @@ export default function SustainableActionTracker() {
         backgroundColor: "#e9fbe5",
         display: "flex",
         fontFamily: "Arial, sans-serif",
+        position: "relative",
       }}
     >
+      {/* Add the logo */}
+      <div style={{
+        position: "absolute",
+        top: 10,
+        right: 10,
+        zIndex: 1000,
+      }}>
+        <Image
+          src="/carbonKingLogo.png"
+          alt="Carbon King Logo"
+          width={150}
+          height={150}
+          style={{
+            objectFit: "contain",
+          }}
+        />
+      </div>
+
       {/* Left sidebar: Quests */}
       <div
         style={{
