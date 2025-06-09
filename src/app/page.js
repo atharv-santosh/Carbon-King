@@ -198,9 +198,11 @@ function calculateQuestionImpact(formData, distanceMiles, eWasteRecycleCount, ve
     if (formData.transport === "Car") {
       impacts.transport = 0.404 * km;
     } else if (formData.transport === "Bus") {
-      impacts.transport = 0.101 * km * 0.5;
+      impacts.transport = 0.101 * km;
     } else if (formData.transport === "Train") {
-      impacts.transport = 0.041 * km * 0.3;
+      impacts.transport = 0.041 * km;
+    } else if (formData.transport === "Bike" || formData.transport === "Walk") {
+      impacts.transport = 0.404 * km; // Same as car emissions, since they avoided using a car
     }
   }
 
@@ -234,12 +236,13 @@ function analyzeCarbonUsage(formData, carbonSaved) {
 
   // Analyze transport
   if (formData.transport === "Car") {
-    analysis.push("Consider using public transport or carpooling to reduce your carbon footprint.");
-    suggestions.push("Try taking the bus or train next time!");
+    suggestions.push("Consider using public transport or carpooling to reduce your carbon footprint. Try taking the bus or train next time!");
   } else if (formData.transport === "Bus" || formData.transport === "Train") {
     analysis.push("Great job using public transport!");
   } else if (formData.transport === "Bike" || formData.transport === "Walk") {
     analysis.push("Excellent choice! Walking or biking is the most eco-friendly option.");
+  } else if (formData.transport === "Didn't go anywhere") {
+    analysis.push("Staying put or working from home can significantly reduce your travel footprint!");
   }
 
   // Analyze vegetarian meals
@@ -513,12 +516,10 @@ export default function SustainableActionTracker() {
         
         // Update progress based on the action type
         if (quest.key === "bikeMiles" && formData.transport === "Bike") {
-          // Add the current distance to the progress
           progress = Math.min(quest.target, progress + Number(distanceMiles));
         } else if (quest.key === "recycledDevices" && formData.eWaste === "Yes, recycled or donated") {
           progress = Math.min(quest.target, progress + Number(eWasteRecycleCount));
         } else if (quest.key === "walkMiles" && formData.transport === "Walk") {
-          // Add the current distance to the progress
           progress = Math.min(quest.target, progress + Number(distanceMiles));
         } else if (quest.key === "energySaves" && formData.energy === "Yes") {
           progress = Math.min(quest.target, progress + 1);
