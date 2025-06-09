@@ -90,6 +90,7 @@ const initialQuests = [
     progress: 0,
     target: 10,
     key: "bikeMiles",
+    completed: false,
     updateProgress: (formData, distanceMiles) => {
       if (formData.transport === "Bike") return distanceMiles;
       return 0;
@@ -101,6 +102,7 @@ const initialQuests = [
     progress: 0,
     target: 5,
     key: "recycledDevices",
+    completed: false,
     updateProgress: (formData, distanceMiles, eWasteRecycleCount) => {
       if (formData.eWaste === "Yes, recycled or donated") return eWasteRecycleCount;
       return 0;
@@ -116,6 +118,7 @@ function generateNewQuest(existingIds = []) {
       progress: 0,
       target: 3,
       key: "walkMiles",
+      completed: false,
       updateProgress: (formData, distanceMiles) => {
         if (formData.transport === "Walk") return distanceMiles;
         return 0;
@@ -127,6 +130,7 @@ function generateNewQuest(existingIds = []) {
       progress: 0,
       target: 3,
       key: "energySaves",
+      completed: false,
       updateProgress: (formData) => {
         if (formData.energy === "Yes") return 1;
         return 0;
@@ -138,6 +142,7 @@ function generateNewQuest(existingIds = []) {
       progress: 0,
       target: 5,
       key: "plasticAvoided",
+      completed: false,
       updateProgress: (formData) => {
         if (formData.plastic === "Yes") return 1;
         return 0;
@@ -154,6 +159,7 @@ function generateNewQuest(existingIds = []) {
     progress: 0,
     target: 1,
     key: "default",
+    completed: false,
     updateProgress: () => 0,
   };
 }
@@ -449,9 +455,6 @@ export default function SustainableActionTracker() {
 
     const transportAnswer = formData.transport;
     if (transportAnswer) {
-      const transportOption = questions[0].options.find(
-        (o) => o.label === transportAnswer
-      );
       let km = 0;
       if (["Bike", "Walk", "Bus", "Train"].includes(transportAnswer) && distanceMiles > 0) {
         km = distanceMiles * 1.60934; // Convert miles to km
@@ -463,14 +466,14 @@ export default function SustainableActionTracker() {
         carbonSaved += 0.404 * km;
       } else if (transportAnswer === "Bus") {
         // Bus emits 101g CO2 per km per passenger
-        // Reduce the impact by 50% to balance XP
-        carbonSaved += 0.101 * km * 0.5;
+        carbonSaved += 0.101 * km;
       } else if (transportAnswer === "Train") {
         // Train emits 41g CO2 per km per passenger
-        // Reduce the impact by 70% to balance XP
-        carbonSaved += 0.041 * km * 0.3;
+        carbonSaved += 0.041 * km;
+      } else if (transportAnswer === "Bike" || transportAnswer === "Walk") {
+        // For biking and walking, calculate the carbon saved by not using a car
+        carbonSaved += 0.404 * km; // Same as car emissions, since they avoided using a car
       }
-      // Bike and Walk have 0 emissions
     }
 
     // Calculate carbon saved from food choices
@@ -510,11 +513,13 @@ export default function SustainableActionTracker() {
         
         // Update progress based on the action type
         if (quest.key === "bikeMiles" && formData.transport === "Bike") {
-          progress = Math.min(quest.target, progress + distanceMiles);
+          // Add the current distance to the progress
+          progress = Math.min(quest.target, progress + Number(distanceMiles));
         } else if (quest.key === "recycledDevices" && formData.eWaste === "Yes, recycled or donated") {
-          progress = Math.min(quest.target, progress + eWasteRecycleCount);
+          progress = Math.min(quest.target, progress + Number(eWasteRecycleCount));
         } else if (quest.key === "walkMiles" && formData.transport === "Walk") {
-          progress = Math.min(quest.target, progress + distanceMiles);
+          // Add the current distance to the progress
+          progress = Math.min(quest.target, progress + Number(distanceMiles));
         } else if (quest.key === "energySaves" && formData.energy === "Yes") {
           progress = Math.min(quest.target, progress + 1);
         } else if (quest.key === "plasticAvoided" && formData.plastic === "Yes") {
@@ -578,7 +583,7 @@ export default function SustainableActionTracker() {
       const saved = getImpact();
       setCarbonSaved(saved);
       
-      // Calculate XP with more balanced multipliers
+      // Calculate XP with balanced multipliers
       let xpGained = 0;
       
       // Calculate XP for each action type
